@@ -7,6 +7,7 @@ case class EmptyRecord()
 case class RecordWithString(a: String)
 case class RecordWith2Strings(a: String, b: String)
 case class RecordWithPrimitives(a: String, b: Int, c: Long, d: Float, e: Double, f: Boolean)
+case class RecordWithPrimitiveOption(a: Option[String])
 
 class AvroSchemaTest extends FunSpec with ShouldMatchers {
   describe("EmptyRecord") {
@@ -30,6 +31,12 @@ class AvroSchemaTest extends FunSpec with ShouldMatchers {
   describe("RecordWithPrimitives") {
     it("should generate the corresponding Avro schema") {
       AvroSchema.from[RecordWithPrimitives].toString should be ("""{"type":"record","name":"RecordWithPrimitives","namespace":"org.apache.avro.scala.schema","fields":[{"name":"a","type":"string"},{"name":"b","type":"int"},{"name":"c","type":"long"},{"name":"d","type":"float"},{"name":"e","type":"double"},{"name":"f","type":"boolean"}]}""")
+    }
+  }
+
+  describe("RecordWithPrimitiveOption") {
+    it("should generate the corresponding Avro schema") {
+      AvroSchema.from[RecordWithPrimitiveOption].toString should be ("""{"type":"record","name":"RecordWithPrimitiveOption","namespace":"org.apache.avro.scala.schema","fields":[{"name":"a","type":["null","string"]}]}""")
     }
   }
 }

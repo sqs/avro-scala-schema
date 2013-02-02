@@ -28,14 +28,15 @@ object AvroSchema {
       .map { f =>
         new Schema.Field(
           f.name.encoded,
-          Schema.create(f.asMethod.returnType.typeConstructor.toString match {
-            case "String" => Schema.Type.STRING
-            case "Int" => Schema.Type.INT
-            case "Long" => Schema.Type.LONG
-            case "Float" => Schema.Type.FLOAT
-            case "Double" => Schema.Type.DOUBLE
-            case "Boolean" => Schema.Type.BOOLEAN
-          }),
+          f.asMethod.returnType.typeConstructor.toString match {
+            case "String" => Schema.create(Schema.Type.STRING)
+            case "Int" => Schema.create(Schema.Type.INT)
+            case "Long" => Schema.create(Schema.Type.LONG)
+            case "Float" => Schema.create(Schema.Type.FLOAT)
+            case "Double" => Schema.create(Schema.Type.DOUBLE)
+            case "Boolean" => Schema.create(Schema.Type.BOOLEAN)
+            case "Option" => Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.STRING)))
+          },
           null,
           null
         )
