@@ -2,22 +2,33 @@ package org.apache.avro.scala.schema
 
 import org.apache.avro.Schema
 import scala.collection.JavaConversions._
+import scala.language.experimental.macros
+import scala.reflect.macros.Context
 
 object AvroSchema {
-  def apply[CC <: Product](obj: CC): Schema = {
-    val s = Schema.createRecord(recordName(obj), null, recordNamespace(obj), false);
-    s.setFields(List())
-    s
-  }
+  def from[CC <: Product]: Schema = macro applyImpl[CC]
 
-  def recordName[CC <: Product](obj: CC): String = {
-    val name = obj.getClass.getSimpleName
-    if (name.contains("$")) {
-      throw new Exception(s"Classes defined in anonymous functions (such as ${name}, in this case) may not be used to generate Avro record schemas because it is difficult to determine the proper name of the corresponding Avro record.")
+  def applyImpl[CC : c.WeakTypeTag](c: Context): c.Expr[Schema] = {
+    import c.universe._
+    val caseClass = weakTypeOf[CC].typeSymbol.asClass
+
+    val recordName = {
+      if (caseClass.name.encoded != caseClass.name.decoded) {
+        throw new Exception(s"Can't generate Avro schema for class with non-alphanumeric name: '${caseClass.name.decoded}'")
+      }
+      caseClass.name.encoded
     }
-    name
-  }
+    val recordNamespace = caseClass.owner.fullName
 
-  def recordNamespace[CC <: Product](obj: CC): String =
-    obj.getClass.getPackage.getName
+    reify {
+      val s = Schema.createRecord(
+        c.Expr[String](Literal(Constant(recordName))).splice,
+        null,
+        c.Expr[String](Literal(Constant(recordNamespace))).splice,
+        false
+      )
+      s.setFields(Nil)
+      s
+    }
+  }
 }
