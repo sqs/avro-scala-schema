@@ -30,6 +30,11 @@ object AvroSchema {
           f.name.encoded,
           Schema.create(f.asMethod.returnType.typeConstructor.toString match {
             case "String" => Schema.Type.STRING
+            case "Int" => Schema.Type.INT
+            case "Long" => Schema.Type.LONG
+            case "Float" => Schema.Type.FLOAT
+            case "Double" => Schema.Type.DOUBLE
+            case "Boolean" => Schema.Type.BOOLEAN
           }),
           null,
           null
