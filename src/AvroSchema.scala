@@ -22,31 +22,26 @@ object AvroSchema {
     }
     val recordNamespace = caseClass.owner.fullName
 
-    val fields = cc.members
+    val fields = cc.declarations.sorted
       .map(_.asTerm)
       .filter(f => f.isCaseAccessor && f.isGetter).toList
       .map { f =>
-        reify {
-          new Schema.Field(
-            c.Expr[String](Literal(Constant(f.name.encoded))).splice,
-            Schema.create(Schema.Type.STRING),
-            null,
-            null
-          )
-        }.tree
-      }
+        new Schema.Field(
+          f.name.encoded,
+          Schema.create(f.asMethod.returnType.typeConstructor.toString match {
+            case "String" => Schema.Type.STRING
+          }),
+          null,
+          null
+        )
+    }
 
+    val s = Schema.createRecord(recordName, null, recordNamespace, false)
+    s.setFields(fields)
     reify {
-      val s = Schema.createRecord(
-        c.Expr[String](Literal(Constant(recordName))).splice,
-        null,
-        c.Expr[String](Literal(Constant(recordNamespace))).splice,
-        false
+      new Schema.Parser().parse(
+        c.Expr[String](Literal(Constant(s.toString))).splice
       )
-      s.setFields(
-        c.Expr[List[Schema.Field]](Apply(Ident(newTermName("List")), fields)).splice
-      )
-      s
     }
   }
 }
