@@ -10,7 +10,9 @@ object AvroSchema {
 
   def applyImpl[CC : c.WeakTypeTag](c: Context): c.Expr[Schema] = {
     import c.universe._
-    val caseClass = weakTypeOf[CC].typeSymbol.asClass
+
+    val cc = weakTypeOf[CC]
+    val caseClass = cc.typeSymbol.asClass
 
     val recordName = {
       if (caseClass.name.encoded != caseClass.name.decoded) {
@@ -20,6 +22,20 @@ object AvroSchema {
     }
     val recordNamespace = caseClass.owner.fullName
 
+    val fields = cc.members
+      .map(_.asTerm)
+      .filter(f => f.isCaseAccessor && f.isGetter).toList
+      .map { f =>
+        reify {
+          new Schema.Field(
+            c.Expr[String](Literal(Constant(f.name.encoded))).splice,
+            Schema.create(Schema.Type.STRING),
+            null,
+            null
+          )
+        }.tree
+      }
+
     reify {
       val s = Schema.createRecord(
         c.Expr[String](Literal(Constant(recordName))).splice,
@@ -27,7 +43,9 @@ object AvroSchema {
         c.Expr[String](Literal(Constant(recordNamespace))).splice,
         false
       )
-      s.setFields(Nil)
+      s.setFields(
+        c.Expr[List[Schema.Field]](Apply(Ident(newTermName("List")), fields)).splice
+      )
       s
     }
   }
